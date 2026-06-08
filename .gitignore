@@ -1,0 +1,30 @@
+# Virtual environment
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Data & models (too large for git)
+data/raw/
+data/processed/
+*.bin
+*.safetensors
+*.pt
+*.ckpt
+*.onnx
+
+# Credentials
+.env
+secrets.yaml
+
+# Experiments
+experiments/lora_runs/
+wandb/
+
+# OS
+.DS_Store
+
+# pyenv
+.python-version
