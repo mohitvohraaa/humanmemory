@@ -211,7 +211,7 @@ class SyntheticGenerator:
                     if random.random() < 0.10:
                         qid = self._new_query_id()
                         # Include qid in query_text to avoid duplicate key overwrites
-                        query_text = f"What has the user said about {template['topic']}? [{qid}]"
+                        query_text = f"What has the user said about {template['topic']}?"
                         dataset.ground_truth[qid] = [turn.turn_id]
                         dataset.queries[qid] = query_text
                         turn.relevant_for_queries.append(qid)
@@ -235,7 +235,7 @@ class SyntheticGenerator:
 
                 # Create the query for this fact
                 qid = self._new_query_id()
-                query_text = f"What did the user say about their {category}? [{qid}]"
+                query_text = f"What did the user say about their {category}?"
                 dataset.ground_truth[qid] = [fact_turn.turn_id]
                 dataset.queries[qid] = query_text
                 fact_turn.relevant_for_queries.append(qid)
