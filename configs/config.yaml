@@ -1,0 +1,70 @@
+project:
+  name: "humanmemory"
+  wandb_project: "humanmemory-experiments"
+
+model:
+  base: "microsoft/Phi-3-mini-4k-instruct"
+  embedding: "sentence-transformers/all-mpnet-base-v2"
+  emotion_classifier: "bhadresh-savani/distilbert-base-uncased-emotion"
+  device: "cpu"
+  dtype: "float32"
+
+memory:
+  working:
+    max_context_tokens: 3000
+    budget_allocation:
+      current_turn: 500
+      episodic: 800
+      semantic: 600
+      affective: 300
+      procedural: 400
+      system_prompt: 400
+
+  episodic:
+    db_path: "data/processed/episodic.db"
+    chroma_collection: "episodic_memories"
+    chroma_persist_dir: "data/processed/chroma"
+    max_memories_retrieved: 10
+    importance_threshold: 0.3
+    decay_tau_days: 14
+
+  semantic:
+    min_episodes_for_consolidation: 5
+    contradiction_window_days: 30
+    fact_categories:
+      - "identity"
+      - "preferences"
+      - "concerns"
+      - "relationships"
+      - "goals"
+
+  affective:
+    emotion_classes:
+      - "joy"
+      - "sadness"
+      - "fear"
+      - "anger"
+      - "surprise"
+      - "neutral"
+    topic_min_occurrences: 3
+    high_valence_threshold: 0.6
+
+  procedural:
+    rules_path: "data/processed/procedural_rules.json"
+    max_rules_in_context: 5
+    min_confidence_to_apply: 0.7
+
+retrieval:
+  weight_semantic: 0.40
+  weight_recency: 0.25
+  weight_importance: 0.20
+  weight_affective: 0.15
+  top_k: 10
+  rerank_top_n: 5
+
+evaluation:
+  recall_k_values: [1, 3, 5, 10]
+  test_session_gaps: [1, 5, 10, 25, 50, 100]
+  synthetic_sessions: 100
+  turns_per_session: 20
+  target_retrieval_latency_ms: 80

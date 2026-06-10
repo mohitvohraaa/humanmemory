@@ -1,0 +1,31 @@
+# Core ML
+torch>=2.2.0
+transformers>=4.40.0
+peft>=0.10.0
+sentence-transformers>=2.7.0
+datasets>=2.19.0
+
+# Vector Store & DB
+chromadb>=0.5.0
+sqlalchemy>=2.0.0
+
+# API & Serving
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+
+# Evaluation & Tracking
+wandb>=0.17.0
+numpy>=1.26.0
+scipy>=1.13.0
+scikit-learn>=1.4.0
+
+# NLP Utilities
+keybert>=0.8.0
+nltk>=3.8.0
+
+# Dev & Testing
+pytest>=8.2.0
+python-dotenv>=1.0.0
+tqdm>=4.66.0
+loguru>=0.7.0
+pyyaml>=6.0.0
