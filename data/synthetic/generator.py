@@ -213,7 +213,7 @@ class SyntheticGenerator:
                         # Include qid in query_text to avoid duplicate key overwrites
                         query_text = f"What has the user said about {template['topic']}? [{qid}]"
                         dataset.ground_truth[qid] = [turn.turn_id]
-                        dataset.queries[query_text] = qid
+                        dataset.queries[qid] = query_text
                         turn.relevant_for_queries.append(qid)
 
             # Every 10 sessions — plant a persona fact for long-horizon testing
@@ -237,7 +237,7 @@ class SyntheticGenerator:
                 qid = self._new_query_id()
                 query_text = f"What did the user say about their {category}? [{qid}]"
                 dataset.ground_truth[qid] = [fact_turn.turn_id]
-                dataset.queries[query_text] = qid
+                dataset.queries[qid] = query_text
                 fact_turn.relevant_for_queries.append(qid)
 
                 # Register as long-horizon test at +10, +50, +100 sessions

@@ -114,17 +114,14 @@ def run_semantic_baseline(
     ground_truth = dataset["ground_truth"]
     queries = dataset.get("queries", {})
 
-    # Invert queries dict: query_text -> query_id becomes query_id -> query_text
-    query_id_to_text = {v: k for k, v in queries.items()}
-
     timer = LatencyTimer("semantic_retrieve")
     per_query_results = []
 
     for query_id, relevant_turn_ids in ground_truth.items():
         relevant_ids = set(relevant_turn_ids)
 
-        # Get the query text from the inverted dict
-        query_text = query_id_to_text.get(query_id, None)
+        # Get query text directly — queries dict is {qid: query_text}
+        query_text = queries.get(query_id, None)
 
         # Skip if no query text found
         if query_text is None:
@@ -159,7 +156,6 @@ def run_semantic_baseline_relaxed(
     """
     ground_truth = dataset["ground_truth"]
     queries = dataset.get("queries", {})
-    query_id_to_text = {v: k for k, v in queries.items()}
 
     # Build turn_id -> text mapping
     turn_id_to_text = {}
@@ -171,7 +167,7 @@ def run_semantic_baseline_relaxed(
     per_query_results = []
 
     for query_id, relevant_turn_ids in ground_truth.items():
-        query_text = query_id_to_text.get(query_id, None)
+        query_text = queries.get(query_id, None)
         if query_text is None:
             continue
 
