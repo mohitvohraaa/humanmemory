@@ -29,7 +29,7 @@ class EmotionClass(str, Enum):
     SADNESS = "sadness"
     FEAR = "fear"
     ANGER = "anger"
-    SURPRISE = "surprise"
+    GUILT = "guilt"
     NEUTRAL = "neutral"
 
 
@@ -154,19 +154,19 @@ class SemanticFact:
 
 @dataclass
 class EmotionVector:
-    """Emotion scores for a single topic."""
+    """Emotion scores for a single topic — matches EmotionClassifier's 6 groups."""
     joy: float = 0.0
     sadness: float = 0.0
     fear: float = 0.0
     anger: float = 0.0
-    surprise: float = 0.0
+    guilt: float = 0.0
     neutral: float = 1.0
 
     def dominant_emotion(self) -> str:
         scores = {
             "joy": self.joy, "sadness": self.sadness,
             "fear": self.fear, "anger": self.anger,
-            "surprise": self.surprise, "neutral": self.neutral,
+            "guilt": self.guilt, "neutral": self.neutral,
         }
         return max(scores, key=scores.get)
 
@@ -200,7 +200,16 @@ class AffectiveRecord:
         if intensity < 0.2:
             return ""
         level = "strongly" if intensity > 0.7 else "somewhat"
-        return f"User feels {level} {dominant} about '{self.topic}'."
+        adjective_map = {
+            "joy":     "joyful",
+            "sadness": "sad",
+            "fear":    "fearful",
+            "anger":   "angry",
+            "guilt":   "guilty",
+            "neutral": "neutral",
+        }
+        dominant_adj = adjective_map.get(dominant, dominant)
+        return f"User feels {level} {dominant_adj} about '{self.topic}'."
 
 
 # ─── Layer 5: Procedural Memory ──────────────────────────────────────────────
