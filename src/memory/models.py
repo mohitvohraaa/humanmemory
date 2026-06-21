@@ -163,12 +163,25 @@ class EmotionVector:
     neutral: float = 1.0
 
     def dominant_emotion(self) -> str:
+        """
+        Returns the strongest non-neutral emotion if any emotion
+        has crossed a minimal signal threshold (0.1). Falls back
+        to "neutral" only when no real emotional signal is present.
+
+        Why: neutral absorbs leftover probability mass from every
+        classification, so it can win by raw magnitude even when
+        a clear emotion (e.g. fear=0.33) is the only meaningful
+        signal in the vector. Excluding neutral from the comparison
+        once real signal exists gives the correct dominant emotion.
+        """
         scores = {
             "joy": self.joy, "sadness": self.sadness,
             "fear": self.fear, "anger": self.anger,
-            "guilt": self.guilt, "neutral": self.neutral,
+            "guilt": self.guilt,
         }
-        return max(scores, key=scores.get)
+        if max(scores.values()) > 0.1:
+            return max(scores, key=scores.get)
+        return "neutral"
 
     def intensity(self) -> float:
         """How emotionally charged? 0 = flat, 1 = extreme."""

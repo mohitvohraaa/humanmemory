@@ -37,7 +37,7 @@ from src.memory.models import AffectiveRecord, EmotionVector
 DEFAULT_ALPHA = 0.1          # EMA learning rate
 MIN_INTENSITY = 0.2          # skip update if emotion is too weak
 MIN_MENTIONS  = 3            # min turns before topic appears in context
-HIGH_VALENCE_THRESHOLD = 0.5 # intensity above this = high valence topic
+HIGH_VALENCE_THRESHOLD = 0.3 # intensity above this = high valence topic
 
 
 # ─── Store ───────────────────────────────────────────────────────────────────
