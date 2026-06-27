@@ -164,24 +164,40 @@ class EmotionVector:
 
     def dominant_emotion(self) -> str:
         """
-        Returns the strongest non-neutral emotion if any emotion
-        has crossed a minimal signal threshold (0.1). Falls back
-        to "neutral" only when no real emotional signal is present.
+        Returns the strongest non-neutral emotion if:
+          1. It crosses a minimal signal threshold (0.1), AND
+          2. It beats the second-strongest emotion by a meaningful
+             margin (MARGIN_THRESHOLD = 0.1)
 
-        Why: neutral absorbs leftover probability mass from every
-        classification, so it can win by raw magnitude even when
-        a clear emotion (e.g. fear=0.33) is the only meaningful
-        signal in the vector. Excluding neutral from the comparison
-        once real signal exists gives the correct dominant emotion.
+        Falls back to:
+          - "mixed"   if top score > 0.1 but margin over runner-up
+                      is too small (genuinely ambiguous emotional state)
+          - "neutral" if no real emotional signal is present at all
+
+        Why the margin check exists: without it, two near-tied
+        emotions (e.g. joy=0.266 vs fear=0.246) produce a falsely
+        confident single answer ("User feels joyful") when the
+        honest answer is "genuinely mixed feelings." A 0.02 gap
+        is noise, not a real winner.
         """
         scores = {
             "joy": self.joy, "sadness": self.sadness,
             "fear": self.fear, "anger": self.anger,
             "guilt": self.guilt,
         }
-        if max(scores.values()) > 0.1:
-            return max(scores, key=scores.get)
-        return "neutral"
+        sorted_items = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        top_emotion, top_score = sorted_items[0]
+        second_emotion, second_score = sorted_items[1]
+
+        MARGIN_THRESHOLD = 0.1
+
+        if top_score <= 0.1:
+            return "neutral"
+        if (top_score - second_score) <= MARGIN_THRESHOLD:
+            # Genuinely ambiguous — name both emotions in tension
+            # instead of returning a vague "mixed" label
+            return f"mixed:{top_emotion}+{second_emotion}"
+        return top_emotion
 
     def intensity(self) -> float:
         """How emotionally charged? 0 = flat, 1 = extreme."""
@@ -221,6 +237,11 @@ class AffectiveRecord:
             "guilt":   "guilty",
             "neutral": "neutral",
         }
+        if dominant.startswith("mixed:"):
+            e1_raw, e2_raw = dominant.replace("mixed:", "").split("+")
+            e1 = adjective_map.get(e1_raw, e1_raw)
+            e2 = adjective_map.get(e2_raw, e2_raw)
+            return f"User has mixed feelings about '{self.topic}' — both {e1} and {e2}."
         dominant_adj = adjective_map.get(dominant, dominant)
         return f"User feels {level} {dominant_adj} about '{self.topic}'."
 
