@@ -16,7 +16,7 @@ Existing memory frameworks (MemGPT, Generative Agents, A-MEM, Mem0) remember *wh
 |---|---|---|
 | 1 — Working Memory | ✅ | Context assembler, token-budget aware |
 | 2 — Episodic Memory | ✅ | SQLite + ChromaDB, hybrid retrieval + adaptive reranking |
-| 3 — Semantic Memory | ❌ | Not yet built (Week 3) |
+| 3 — Semantic Memory | ✅ | Durable facts from episodic clusters, contradiction detection |
 | 4 — Affective Memory ★ | ✅ | Topic→emotion EMA vectors — the novel layer |
 | 5 — Procedural Memory | ❌ | Not yet built (Week 4) |
 
@@ -38,6 +38,22 @@ Existing memory frameworks (MemGPT, Generative Agents, A-MEM, Mem0) remember *wh
 | Margin threshold | 0.1 |
 | Min mentions required | 3 |
 
+**Affective impact finding (LLM-judge evaluation):** affective context's
+value is conditional on episodic memory's emotional sparsity — redundant
+when retrieved memories already contain emotional language (episodic-only
+won 3/3 in that case), but adds genuine signal when episodic memories are
+factually flat (episodic+affective won 3/3 in that case).
+
+### Semantic Memory (Layer 3)
+
+Consolidation pipeline: groups session turns by topic, extracts durable
+facts via LLM (with contradiction detection against existing facts in the
+same category). Recency wins on conflict; old facts marked stale, not
+deleted, preserving full history.
+
+**Known limitation:** turns tagged into multiple topics can generate
+near-duplicate facts across categories — not yet deduplicated.
+
 ## Blog series
 
 - [Week 1: Everything That Broke](#) — retrieval baselines, synthetic data failures
@@ -55,4 +71,4 @@ pip install -r requirements.txt
 
 ## Status
 
-Actively built in public, day by day. Week 3 (semantic memory) in progress.
+Actively built in public, day by day. Week 4 (procedural memory) in progress.
