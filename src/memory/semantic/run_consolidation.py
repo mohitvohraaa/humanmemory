@@ -7,7 +7,9 @@ into one function that runs at session end.
 
 from __future__ import annotations
 
-from src.memory.affective.topic_tagger import TopicTagger
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.memory.affective.topic_tagger import TopicTagger
 from src.memory.semantic.consolidation import extract_fact
 from src.memory.semantic.semantic_store import SemanticStore
 
@@ -16,17 +18,25 @@ MIN_TURNS_FOR_CONSOLIDATION = 2  # need at least this many same-topic turns
 
 def consolidate_session(
     turns: list[dict],  # [{"text": str, "turn_id": str}, ...]
-    topic_tagger: TopicTagger,
     semantic_store: SemanticStore,
+    topic_tagger: TopicTagger | None = None,
 ) -> list[dict]:
     """
     Groups session turns by topic, extracts facts per topic cluster,
     stores any extracted facts. Returns list of what was added.
+
+    If turns contain a "topics" key, those are used directly (pre-tagged).
+    Otherwise, topic_tagger must be provided to tag turns on the fly.
     """
     # Step 1 — group turns by topic
     topic_clusters: dict[str, list[dict]] = {}
     for turn in turns:
-        topics = topic_tagger.tag(turn["text"])
+        if "topics" in turn:
+            topics = turn["topics"]
+        elif topic_tagger is not None:
+            topics = topic_tagger.tag(turn["text"])
+        else:
+            continue
         for topic in topics:
             topic_clusters.setdefault(topic, []).append(turn)
 

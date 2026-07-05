@@ -24,13 +24,28 @@ from src.memory.models import SemanticFact, FactCategory
 load_dotenv()
 
 
-CONTRADICTION_PROMPT = """Compare these two statements about the same user.
+FACT_CHECK_PROMPT = """You are managing a user profile for a companion AI.
 
-Existing fact: "{old_fact}"
-New fact: "{new_fact}"
+Existing facts about the user (in this category):
+{existing_facts}
 
-Do they genuinely contradict each other (not just add detail, but
-conflict)? Answer with exactly one word: YES or NO."""
+New fact to evaluate: "{new_fact}"
+
+Classify the new fact as exactly one of:
+  DUPLICATE    - the new fact says the same thing as an existing fact
+                 (same meaning, possibly different words)
+  CONTRADICTION - the new fact directly conflicts with an existing fact
+                 (not just adds detail, but genuinely opposes it)
+  NEW          - the new fact is genuinely different and non-conflicting
+
+If CONTRADICTION, also state which existing fact it contradicts by
+writing: CONTRADICTION: <the exact existing fact text>
+
+Answer on a single line. Examples:
+  DUPLICATE
+  NEW
+  CONTRADICTION: User enjoys their current job and feels fulfilled.
+"""
 
 
 class SemanticStore:
@@ -66,19 +81,33 @@ class SemanticStore:
         Add a new fact. Checks active facts in the SAME category
         for contradictions before saving.
         """
-        # Step 1 — check existing active facts in same category for conflict
+        # Step 1 — filter existing active facts in same category
         same_category_facts = [
             f for f in self._facts
             if f["category"] == category and not f["is_stale"]
         ]
 
-        for existing in same_category_facts:
-            if self._is_contradiction(existing["fact_text"], fact_text):
-                # Recency wins — mark the OLD fact stale, keep the new one
-                existing["is_stale"] = True
-                existing["last_contradicted_at"] = datetime.utcnow().isoformat()
+        # ONE LLM call: handles duplicate + contradiction simultaneously
+        verdict = self._check_against_existing(same_category_facts, fact_text)
 
-        # Step 2 — build the new fact record
+        if verdict == "DUPLICATE":
+            # Already stored — return the matching existing fact
+            return self._to_semantic_fact(same_category_facts[0])
+
+        if verdict.startswith("CONTRADICTION:"):
+            # Find the specific fact being contradicted and mark it stale
+            contradicted_text = verdict.replace("CONTRADICTION:", "").strip()
+            for existing in same_category_facts:
+                if existing["fact_text"].strip().lower() == contradicted_text.strip().lower():
+                    existing["is_stale"] = True
+                    existing["last_contradicted_at"] = datetime.utcnow().isoformat()
+                    break
+            # If exact match not found, mark the most recent one stale
+            if not any(f.get("last_contradicted_at") for f in same_category_facts):
+                same_category_facts[-1]["is_stale"] = True
+                same_category_facts[-1]["last_contradicted_at"] = datetime.utcnow().isoformat()
+
+        # NEW (or after contradiction) — store the fact
         new_fact = {
             "id": str(uuid.uuid4()),
             "user_id": self.user_id,
@@ -94,17 +123,37 @@ class SemanticStore:
         self._save()
         return self._to_semantic_fact(new_fact)
 
-    def _is_contradiction(self, old_fact: str, new_fact: str) -> bool:
-        """LLM call: does the new fact genuinely conflict with the old one?"""
-        prompt = CONTRADICTION_PROMPT.format(old_fact=old_fact, new_fact=new_fact)
+    def _check_against_existing(
+        self,
+        same_category_facts: list[dict],
+        new_fact: str,
+    ) -> str:
+        """
+        ONE LLM call that handles both duplicate detection AND
+        contradiction detection simultaneously.
+
+        Returns one of:
+          "DUPLICATE"        → new fact is same meaning as existing one
+          "NEW"              → genuinely new, store it
+          "CONTRADICTION:<text>" → conflicts with a specific existing fact
+        """
+        if not same_category_facts:
+            return "NEW"
+
+        existing_text = "\n".join(
+            f"- {f['fact_text']}" for f in same_category_facts
+        )
+        prompt = FACT_CHECK_PROMPT.format(
+            existing_facts=existing_text,
+            new_fact=new_fact,
+        )
         response = self.client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=5,
+            max_tokens=40,
             temperature=0.0,
         )
-        answer = response.choices[0].message.content.strip().upper()
-        return answer.startswith("YES")
+        return response.choices[0].message.content.strip()
 
     # ── Read ──────────────────────────────────────────────────────────────
 
