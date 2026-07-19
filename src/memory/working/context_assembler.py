@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 
 from src.memory.affective.affective_store import AffectiveStore
 from src.memory.episodic.semantic_store import SemanticEpisodicStore
+from src.memory.semantic.semantic_store import SemanticStore
 from src.retrieval.query_classifier import classify, get_weights
 from src.retrieval.reranker import rerank
 
@@ -27,13 +28,20 @@ class AssembledContext:
     """Result of assembling working memory context for one query."""
     query_text: str
     episodic_context: str = ""
+    semantic_context: str = ""
     affective_context: str = ""
     retrieved_memory_ids: list[str] = field(default_factory=list)
     query_type: str = ""
 
     def to_prompt_string(self) -> str:
-        """Final string injected into the LLM system prompt."""
+        """
+        Final string injected into the LLM system prompt.
+        Order matters: profile facts first (stable), then emotional
+        state (dynamic), then specific memories (most specific).
+        """
         parts = []
+        if self.semantic_context:
+            parts.append(self.semantic_context)
         if self.affective_context:
             parts.append(self.affective_context)
         if self.episodic_context:
@@ -45,6 +53,7 @@ def assemble_context(
     query_text: str,
     episodic_store: SemanticEpisodicStore,
     affective_store: AffectiveStore,
+    semantic_store: SemanticStore | None = None,
     topics: list[str] | None = None,
     top_k: int = 5,
 ) -> AssembledContext:
@@ -78,12 +87,15 @@ def assemble_context(
     episodic_context = "\n".join(f"- {line}" for line in episodic_lines)
 
     # Step 4 — pull affective context for relevant topics
-    # If no topics provided, fall back to full context (all high-signal topics)
     affective_context = affective_store.to_context()
+
+    # Step 5 — pull semantic facts ([USER PROFILE])
+    semantic_context = semantic_store.to_context() if semantic_store else ""
 
     return AssembledContext(
         query_text=query_text,
         episodic_context=episodic_context,
+        semantic_context=semantic_context,
         affective_context=affective_context,
         retrieved_memory_ids=[m["id"] for m in top_memories],
         query_type=query_type.value,
