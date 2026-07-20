@@ -14,7 +14,7 @@ Existing memory frameworks (MemGPT, Generative Agents, A-MEM, Mem0) remember *wh
 
 | Layer | Status | Key Component |
 |---|---|---|
-| 1 — Working Memory | ✅ | Context assembler, token-budget aware |
+| 1 — Working Memory | ✅ | Context assembler, FastAPI server, 3-layer prompt assembly |
 | 2 — Episodic Memory | ✅ | SQLite + ChromaDB, hybrid retrieval + adaptive reranking |
 | 3 — Semantic Memory | ✅ | Durable facts from episodic clusters, contradiction detection |
 | 4 — Affective Memory ★ | ✅ | Topic→emotion EMA vectors — the novel layer |
@@ -87,6 +87,28 @@ near-duplicate facts across categories — not yet deduplicated.
 - [Week 3 Part 1: Building the Evaluator](https://mohitvohraaa.substack.com/p/building-humanmemory-week-3part-1?r=2y4jgp) — independent ground truth, mixed emotion handling
 - [Week 3 Part 2: Does Affective Memory Help?](https://mohitvohraaa.substack.com/p/building-humanmemory-week-3-does?r=2y4jgp) — A/B impact testing, conditional value finding
 - [Week 3 Part 3: Building Semantic Memory](https://mohitvohraaa.substack.com/p/building-humanmemory-week-3part-3?r=2y4jgp) — fact extraction, contradiction detection
+
+## API Server
+
+FastAPI server exposing the 5-layer memory system:
+
+```bash
+uvicorn src.api.main:app --reload --port 8000
+```
+
+Interactive docs at `http://localhost:8000/docs`.
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/chat` | POST | Assembles context → calls LLM → stores turn |
+| `/session/end` | POST | Runs affective + semantic consolidation on buffered turns |
+| `/memory/{user_id}` | GET | Inspect semantic facts, affective profile, episodic count |
+| `/memory/{user_id}` | DELETE | Clear all memory for a user |
+| `/health` | GET | Health check |
+
+**Flow:** `/chat` accumulates turns per session. Call `/session/end` when the conversation ends to trigger emotion classification, topic tagging, and fact extraction. Next `/chat` call will have full semantic + affective context.
+
+**Anti-hallucination:** When no prior context exists (new user), the system prompt explicitly tells the LLM not to fabricate past conversations.
 
 ## Setup
 
