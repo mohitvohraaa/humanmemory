@@ -36,6 +36,25 @@ mem.store(message="How's my mom doing?", response=response)
 mem.consolidate()
 ```
 
+### How `get_context()` works
+
+When you call `mem.get_context("How's my mom doing?")`, here's what happens internally:
+
+1. **Classify query** — Groq determines if this is a `recent`, `long_term`, or `specific` query (~5 tokens, ~60ms)
+2. **Retrieve candidates** — ChromaDB vector search finds 20 nearest memories by semantic similarity
+3. **Rerank** — Park et al. formula reranks candidates using query-adaptive weights (e.g., `long_term` boosts importance over recency)
+4. **Pull affective context** — topic→emotion vectors (e.g., "User feels fearful about 'family'")
+5. **Pull semantic context** — durable user profile facts (e.g., "User is close to their mother")
+6. **Assemble** — combines all three into a single prompt string via `to_prompt_string()`
+
+**One Groq call total.** The rest is vector search + math. No LLM generation, no writing — pure retrieval.
+
+```
+store()        → writes to episodic, affective, semantic stores
+consolidate()  → extracts facts, writes to semantic store
+get_context()  → reads from all three stores, assembles context
+```
+
 ---
 
 ## Architecture
