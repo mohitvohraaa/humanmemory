@@ -20,6 +20,7 @@ def consolidate_session(
     turns: list[dict],  # [{"text": str, "turn_id": str}, ...]
     semantic_store: SemanticStore,
     topic_tagger: TopicTagger | None = None,
+    groq_client=None,
 ) -> list[dict]:
     """
     Groups session turns by topic, extracts facts per topic cluster,
@@ -47,7 +48,7 @@ def consolidate_session(
             continue
 
         texts = [t["text"] for t in cluster_turns]
-        result = extract_fact(texts)
+        result = extract_fact(texts, groq_client=groq_client)
         if result is None:
             continue
 

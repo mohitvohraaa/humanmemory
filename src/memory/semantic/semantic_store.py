@@ -17,7 +17,6 @@ from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
-from groq import Groq
 
 from src.memory.models import SemanticFact, FactCategory
 
@@ -60,11 +59,15 @@ class SemanticStore:
     """
 
     def __init__(self, user_id: str = "default_user",
-                 storage_dir: str = "data/processed/semantic"):
+                 storage_dir: str = "data/processed/semantic",
+                 groq_client=None):
         self.user_id = user_id
         self.storage_path = Path(storage_dir) / f"{user_id}.json"
         Path(storage_dir).mkdir(parents=True, exist_ok=True)
-        self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        if groq_client is None:
+            from groq import Groq
+            groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        self.client = groq_client
 
         self._facts: list[dict] = []  # stored as plain dicts on disk
         self._load()

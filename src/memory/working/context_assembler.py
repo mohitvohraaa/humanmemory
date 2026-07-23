@@ -56,6 +56,7 @@ def assemble_context(
     semantic_store: SemanticStore | None = None,
     topics: list[str] | None = None,
     top_k: int = 5,
+    groq_client=None,
 ) -> AssembledContext:
     """
     Build the full working memory context for one query.
@@ -68,12 +69,13 @@ def assemble_context(
                          passed in rather than computed here to avoid
                          redundant Groq calls in the hot path)
         top_k:           how many reranked memories to include
+        groq_client:     optional Groq client for internal operations
 
     Returns:
         AssembledContext with both episodic and affective strings filled in
     """
     # Step 1 — classify query type (recent / long_term / specific)
-    query_type = classify(query_text)
+    query_type = classify(query_text, groq_client=groq_client)
     weights = get_weights(query_type)
 
     # Step 2 — retrieve candidates from episodic memory

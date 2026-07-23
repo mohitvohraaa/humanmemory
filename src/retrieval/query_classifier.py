@@ -29,7 +29,6 @@ from enum import Enum
 from functools import lru_cache
 
 from dotenv import load_dotenv
-from groq import Groq
 
 load_dotenv()
 
@@ -121,14 +120,15 @@ Reply with ONLY one word: recent, long_term, or specific.
 No explanation. No punctuation. Just the word."""
 
 
-def classify(query_text: str, use_cache: bool = True) -> QueryType:
+def classify(query_text: str, use_cache: bool = True, groq_client=None) -> QueryType:
     """
     Classify a query synchronously.
     Checks cache first, then calls Groq, falls back to rules.
     
     Args:
-        query_text: the user's query
-        use_cache:  whether to use the in-memory cache
+        query_text:  the user's query
+        use_cache:   whether to use the in-memory cache
+        groq_client: optional Groq client instance. If None, creates one from env.
     
     Returns:
         QueryType enum value
@@ -140,8 +140,10 @@ def classify(query_text: str, use_cache: bool = True) -> QueryType:
 
     # Try Groq
     try:
-        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        response = client.chat.completions.create(
+        if groq_client is None:
+            from groq import Groq
+            groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        response = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},

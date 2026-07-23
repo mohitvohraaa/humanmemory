@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import os
 from dotenv import load_dotenv
-from groq import Groq
 
 load_dotenv()
 
@@ -57,18 +56,24 @@ Examples:
 """
 
 
-def extract_fact(turns: list[str]) -> dict | None:
+def extract_fact(turns: list[str], groq_client=None) -> dict | None:
     """
     Given a cluster of related episodic turns, extract a single
     durable fact AND its category in one LLM call.
 
+    Args:
+        turns:       list of conversation turn strings
+        groq_client: optional Groq client instance. If None, creates one from env.
+
     Returns:
         {"fact": str, "category": str} or None if no clear pattern
     """
-    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    if groq_client is None:
+        from groq import Groq
+        groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
     turns_text = "\n".join(f"- {t}" for t in turns)
 
-    response = client.chat.completions.create(
+    response = groq_client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},

@@ -33,7 +33,6 @@ from __future__ import annotations
 import os
 
 from dotenv import load_dotenv
-from groq import Groq
 
 load_dotenv()
 
@@ -90,8 +89,11 @@ class TopicTagger:
 
     VALID_DOMAINS = {"career", "family", "health", "work", "relationships"}
 
-    def __init__(self):
-        self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    def __init__(self, groq_client=None):
+        if groq_client is None:
+            from groq import Groq
+            groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        self.client = groq_client
         self._cache: dict[str, list[str]] = {}
 
     def tag(self, text: str, use_cache: bool = True) -> list[str]:
